@@ -3,7 +3,7 @@ import time
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-from collections import deque
+from collections import deque, Counter
 
 import tensorflow as tf
 from tensorflow.compat.v1 import ConfigProto
@@ -28,6 +28,7 @@ VIDEO_PATH = 'data/ShortVideo.mp4'
 MAX_COSINE_DISTANCE = 0.4
 NN_BUDGET = None
 NMS_MAX_OVERLAP = 1.0
+PEAK_TIME_WINDOW = 5  # seconds
 
 # configure GPU
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -68,18 +69,25 @@ colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
 videoCapture = cv2.VideoCapture(VIDEO_PATH)
 width = int(videoCapture.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-fps = int(videoCapture.get(cv2.CAP_PROP_FPS))
+FPS = int(videoCapture.get(cv2.CAP_PROP_FPS))
+peakTimeFrames = PEAK_TIME_WINDOW * FPS
+print(peakTimeFrames)
 codec = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter('data/out.avi', codec, fps, (width, height))
+out = cv2.VideoWriter('data/out.avi', codec, FPS, (width, height))
 pts = [deque(maxlen=30) for _ in range(1000)]
-densityForward = deque(maxlen=fps)
-densityBackward = deque(maxlen=fps)
+densityForward = deque(maxlen=FPS)
+densityBackward = deque(maxlen=FPS)
 averageDensityForward = []
 averageDensityBackward = []
+averageStopped = []
 counter = []
 averageVehicles = []
+stopTimes = []
+peakTimes = []
 
+c = 0
 while True:
+    c += 1
     ret, frame = videoCapture.read()
 
     if ret:
@@ -190,8 +198,9 @@ while True:
             if centerY <= int(height * 0.7 + height / 20) and centerY >= int(height * 0.7 - height / 20):
                 counter.append(int(track.track_id))
 
-            if len(pts[track.track_id]) > 5 and abs(pts[track.track_id][-5][1] - pts[track.track_id][-1][1]) < 3:
+            if len(pts[track.track_id]) > 5 and abs(pts[track.track_id][-5][1] - pts[track.track_id][-1][1]) < 1:
                 stopped.append(track.track_id)
+                averageStopped.append(track.track_id)
             else:
                 moving.append(track.track_id)
 
@@ -212,6 +221,8 @@ while True:
         averageDensityForward.append(currentForwardDensity)
         averageDensityBackward.append(currentBackwardDensity)
         averageVehicles.append(len(set(counter)))
+        # peakTimes.append((c, stoppedVehicles))
+        peakTimes.append(stoppedVehicles)
 
         print(f'[INFO] vehicles in frame {count} | moving {movingVehicles} | stopped {stoppedVehicles} | forward density {currentForwardDensity:.2f} | backward density {currentBackwardDensity:.2f} | fps {fps:.2f}')
 
@@ -231,7 +242,31 @@ videoCapture.release()
 out.release()
 cv2.destroyAllWindows()
 
+counter = Counter(averageStopped)
+t = [counts for (_, counts) in counter.items()]
+
+
+def getStart(arr, k):
+    res = 0
+    start = 0
+
+    for i in range(len(arr) - k):
+        sum_ = 0
+        for j in range(i, i + k):
+            sum_ += arr[j]
+
+        if sum_ > res:
+            res = sum_
+            start = i
+
+    return start
+
+
+peakTimeStart = getStart(peakTimes, peakTimeFrames)
+
 print('[DEBUG] Saved Processed Video')
-print(f'[INFO] Average Forward Density {np.mean(averageDensityForward):.2f}')
-print(f'[INFO] Average Backward Density {np.mean(averageDensityBackward):.2f}')
-print(f'[INFO] Average Vehicles passing the junction {np.mean(averageVehicles):.2f}')
+print(f'[INFO] Average Forward Density {np.mean(averageDensityForward):.2f} vehicles/sec')
+print(f'[INFO] Average Backward Density {np.mean(averageDensityBackward):.2f} vehicles/sec')
+print(f'[INFO] Average Vehicles passing the junction {np.mean(averageVehicles):.2f} vehicles')
+print(f'[INFO] Average stop time {(np.mean(t) / FPS):.2f}s')
+print(f'[INFO] Peak Time Start {peakTimeStart / FPS}s')

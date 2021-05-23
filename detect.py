@@ -24,7 +24,7 @@ TINY = True if WEIGHTS.endswith('tiny-416') else False
 IMG_SIZE = 416
 CONF_THRESHOLD = 0.5  # object confidence threshold
 IOU_THRESHOLD = 0.45  # IOU threshold for NMS
-VIDEO_PATH = 'data/cut.mp4'
+VIDEO_PATH = 'data/ShortVideo.mp4'
 MAX_COSINE_DISTANCE = 0.4
 NN_BUDGET = None
 NMS_MAX_OVERLAP = 1.0
@@ -76,6 +76,8 @@ densityForward = deque(maxlen=fps)
 densityBackward = deque(maxlen=fps)
 averageDensityForward = []
 averageDensityBackward = []
+counter = []
+averageVehicles = []
 
 while True:
     ret, frame = videoCapture.read()
@@ -184,11 +186,14 @@ while True:
 
                 cv2.line(frame, (pts[track.track_id][j - 1]), (pts[track.track_id][j]), color, 2)
 
+            centerY = int(((bbox[1]) + (bbox[3])) / 2)
+            if centerY <= int(height * 0.7 + height / 20) and centerY >= int(height * 0.7 - height / 20):
+                counter.append(int(track.track_id))
+
             if len(pts[track.track_id]) > 5 and abs(pts[track.track_id][-5][1] - pts[track.track_id][-1][1]) < 3:
                 stopped.append(track.track_id)
             else:
                 moving.append(track.track_id)
-                pass
 
             if (pts[track.track_id][0][1] < pts[track.track_id][-1][1]):
                 backward.append(track.track_id)
@@ -206,6 +211,7 @@ while True:
         currentBackwardDensity = np.mean(densityBackward)
         averageDensityForward.append(currentForwardDensity)
         averageDensityBackward.append(currentBackwardDensity)
+        averageVehicles.append(len(set(counter)))
 
         print(f'[INFO] vehicles in frame {count} | moving {movingVehicles} | stopped {stoppedVehicles} | forward density {currentForwardDensity:.2f} | backward density {currentBackwardDensity:.2f} | fps {fps:.2f}')
 
@@ -228,3 +234,4 @@ cv2.destroyAllWindows()
 print('[DEBUG] Saved Processed Video')
 print(f'[INFO] Average Forward Density {np.mean(averageDensityForward):.2f}')
 print(f'[INFO] Average Backward Density {np.mean(averageDensityBackward):.2f}')
+print(f'[INFO] Average Vehicles passing the junction {np.mean(averageVehicles):.2f}')

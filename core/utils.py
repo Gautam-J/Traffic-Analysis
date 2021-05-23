@@ -79,10 +79,15 @@ def read_class_names(class_file_name):
             names[ID] = name.strip('\n')
     return names
 
-def load_config():
-    STRIDES = np.array(cfg.YOLO.STRIDES_TINY)
-    ANCHORS = get_anchors(cfg.YOLO.ANCHORS_TINY, True)
-    XYSCALE = cfg.YOLO.XYSCALE_TINY
+def load_config(tiny=False):
+    if tiny:
+        STRIDES = np.array(cfg.YOLO.STRIDES_TINY)
+        ANCHORS = get_anchors(cfg.YOLO.ANCHORS_TINY, tiny)
+        XYSCALE = cfg.YOLO.XYSCALE_TINY
+    else:
+        STRIDES = np.array(cfg.YOLO.STRIDES)
+        ANCHORS = get_anchors(cfg.YOLO.ANCHORS, tiny)
+        XYSCALE = cfg.YOLO.XYSCALE
 
     NUM_CLASS = len(read_class_names(cfg.YOLO.CLASSES))
 

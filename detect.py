@@ -3,6 +3,7 @@ import time
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
+from collections import deque
 
 import tensorflow as tf
 from tensorflow.compat.v1 import ConfigProto
@@ -18,6 +19,8 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 
 WEIGHTS = './checkpoints/yolov4-tiny-416'
+# WEIGHTS = './checkpoints/yolov4-416'
+TINY = True if WEIGHTS.endswith('tiny-416') else False
 IMG_SIZE = 416
 CONF_THRESHOLD = 0.5  # object confidence threshold
 IOU_THRESHOLD = 0.45  # IOU threshold for NMS
@@ -43,7 +46,7 @@ tracker = Tracker(metric)
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
-STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config()
+STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(TINY)
 
 saved_model_loaded = tf.saved_model.load(WEIGHTS, tags=[tag_constants.SERVING])
 infer = saved_model_loaded.signatures['serving_default']
@@ -68,6 +71,7 @@ height = int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = int(videoCapture.get(cv2.CAP_PROP_FPS))
 codec = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('data/out.avi', codec, fps, (width, height))
+pts = [deque(maxlen=30) for _ in range(1000)]
 
 while True:
     ret, frame = videoCapture.read()
@@ -156,9 +160,22 @@ while True:
 
             color = colors[int(track.track_id) % len(colors)]
             color = [i * 255 for i in color]
+
+            # draw bounding boxes
             cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
             cv2.rectangle(frame, (int(bbox[0]), int(bbox[1] - 30)), (int(bbox[0]) + (len(class_name) + len(str(track.track_id))) * 17, int(bbox[1])), color, -1)
             cv2.putText(frame, class_name + "-" + str(track.track_id), (int(bbox[0]), int(bbox[1] - 10)), 0, 0.75, (255, 255, 255), 2)
+
+            # calculate centroid
+            center = (int(((bbox[0]) + (bbox[2])) / 2), int(((bbox[1]) + (bbox[3])) / 2))
+            pts[track.track_id].append(center)
+
+            # draw trails
+            for j in range(1, len(pts[track.track_id])):
+                if pts[track.track_id][j - 1] is None or pts[track.track_id][j] is None:
+                    continue
+
+                cv2.line(frame, (pts[track.track_id][j - 1]), (pts[track.track_id][j]), color, 2)
 
         fps = 1.0 / (time.time() - start_time)
         print(f'[DEBUG] Total number of vehicles {count} | FPS {fps:.2f}')

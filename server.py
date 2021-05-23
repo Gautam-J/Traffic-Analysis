@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from collections import deque, Counter
 
 import tensorflow as tf
-from werkzeug.utils import redirect
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 from tensorflow.python.saved_model import tag_constants
@@ -104,6 +103,16 @@ def detection():
 def stream():
     global count, movingVehicles, stoppedVehicles, currentForwardDensity, currentBackwardDensity, fps
     global peakTimeStart, averageDensityForwardMean, averageDensityBackwardMean, averageVehiclesMean, averageStopTime
+    peakTimeStart = '0'
+    averageDensityForwardMean = '0'
+    averageDensityBackwardMean = '0'
+    averageVehiclesMean = '0'
+    averageStopTime = '0'
+    count = '0'
+    movingVehicles = '0'
+    stoppedVehicles = '0'
+    currentForwardDensity = '0'
+    currentBackwardDensity = '0'
 
     videoCapture = cv2.VideoCapture("temp/video.mp4")
     height = int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -384,4 +393,4 @@ def peakTimeStart_feed():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=False)

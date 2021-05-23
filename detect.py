@@ -1,7 +1,6 @@
 import cv2
 import time
 import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
 from collections import deque, Counter
 
@@ -28,7 +27,7 @@ VIDEO_PATH = 'data/ShortVideo.mp4'
 MAX_COSINE_DISTANCE = 0.4
 NN_BUDGET = None
 NMS_MAX_OVERLAP = 1.0
-PEAK_TIME_WINDOW = 5  # seconds
+PEAK_TIME_WINDOW = 60  # seconds
 
 # configure GPU
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -92,7 +91,6 @@ while True:
 
     if ret:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        image = Image.fromarray(frame)
 
         image_data = cv2.resize(frame, (IMG_SIZE, IMG_SIZE))
         image_data = image_data / 255.
@@ -221,7 +219,6 @@ while True:
         averageDensityForward.append(currentForwardDensity)
         averageDensityBackward.append(currentBackwardDensity)
         averageVehicles.append(len(set(counter)))
-        # peakTimes.append((c, stoppedVehicles))
         peakTimes.append(stoppedVehicles)
 
         print(f'[INFO] vehicles in frame {count} | moving {movingVehicles} | stopped {stoppedVehicles} | forward density {currentForwardDensity:.2f} | backward density {currentBackwardDensity:.2f} | fps {fps:.2f}')

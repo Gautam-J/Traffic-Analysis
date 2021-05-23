@@ -1,3 +1,4 @@
+import os
 import cv2
 import time
 import numpy as np
@@ -5,6 +6,7 @@ import matplotlib.pyplot as plt
 from collections import deque, Counter
 
 import tensorflow as tf
+from werkzeug.utils import redirect
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 from tensorflow.python.saved_model import tag_constants
@@ -17,7 +19,7 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 
-from flask import Flask, Response, render_template
+from flask import Flask, Response, render_template, request, redirect, url_for
 
 WEIGHTS = './checkpoints/yolov4-tiny-416'
 # WEIGHTS = './checkpoints/yolov4-416'  # https://drive.google.com/file/d/1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT/view
@@ -30,6 +32,10 @@ MAX_COSINE_DISTANCE = 0.4
 NN_BUDGET = None
 NMS_MAX_OVERLAP = 1.0
 PEAK_TIME_WINDOW = 60  # seconds
+upload_dir = 'temp'
+
+if not os.path.exists(upload_dir):
+    os.makedirs(upload_dir)
 
 # configure GPU
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -67,16 +73,6 @@ allowed_classes = [
 cmap = plt.get_cmap('tab20b')
 colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
 
-videoCapture = cv2.VideoCapture(VIDEO_PATH)
-width = int(videoCapture.get(cv2.CAP_PROP_FRAME_WIDTH))
-height = int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-FPS = int(videoCapture.get(cv2.CAP_PROP_FPS))
-peakTimeFrames = PEAK_TIME_WINDOW * FPS
-codec = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter('data/out.avi', codec, FPS, (width, height))
-pts = [deque(maxlen=30) for _ in range(1000)]
-densityForward = deque(maxlen=FPS)
-densityBackward = deque(maxlen=FPS)
 averageDensityForward = []
 averageDensityBackward = []
 averageStopped = []
@@ -86,17 +82,38 @@ stopTimes = []
 peakTimes = []
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'temp'
 
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def main():
+    if request.method == 'POST':
+        video = request.files['video']
+        video.save(os.path.join(upload_dir, 'video.mp4'))
+
+        return redirect(url_for('detection'))
+
     return render_template('index.html')
+
+
+@app.route('/detection')
+def detection():
+    return render_template('detection.html')
 
 
 def stream():
     global count, movingVehicles, stoppedVehicles, currentForwardDensity, currentBackwardDensity, fps
     global peakTimeStart, averageDensityForwardMean, averageDensityBackwardMean, averageVehiclesMean, averageStopTime
+
+    videoCapture = cv2.VideoCapture("temp/video.mp4")
+    height = int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    FPS = int(videoCapture.get(cv2.CAP_PROP_FPS))
+    peakTimeFrames = PEAK_TIME_WINDOW * FPS
+    pts = [deque(maxlen=30) for _ in range(1000)]
+    densityForward = deque(maxlen=FPS)
+    densityBackward = deque(maxlen=FPS)
     counter = []
+
     while True:
         ret, frame = videoCapture.read()
         if ret:

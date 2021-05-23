@@ -3,6 +3,7 @@
 __pycache__/
 
 checkpoints/yolov4-416/
+temp/
 
 *.mp4
 *.avi

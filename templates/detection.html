@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Stream</title>
+  </head>
+  <body>
+    <img src="{{ url_for('video_feed') }}" alt="" />
+
+    <p>Vehicles in frame:</p>
+    <p id="count"></p>
+    <p>Moving vehicles:</p>
+    <p id="movingVehicles"></p>
+    <p>Stopped vehicles:</p>
+    <p id="stoppedVehicles"></p>
+    <p>Forward Density:</p>
+    <p id="currentForwardDensity"></p>
+    <p>Backward Density:</p>
+    <p id="currentBackwardDensity"></p>
+
+    <p>Summary</p>
+
+    <p>Average vehicles crossing the junction:</p>
+    <p id="averageVehiclesMean"></p>
+    <p>Average Stop Time:</p>
+    <p id="averageStopTime"></p>
+    <p>Average Forward Density:</p>
+    <p id="averageDensityForwardMean"></p>
+    <p>Average Backward Density:</p>
+    <p id="averageDensityBackwardMean"></p>
+    <p>Peak Time (Minute):</p>
+    <p id="peakTimeStart"></p>
+  </body>
+  <script>
+    var count = document.getElementById("count");
+
+    setInterval(() => {
+      fetch("{{ url_for('count_feed') }}").then((response) => {
+        response.text().then((t) => {
+          count.innerHTML = t;
+        });
+      });
+    }, 500);
+
+    var movingVehicles = document.getElementById("movingVehicles");
+
+    setInterval(() => {
+      fetch("{{ url_for('movingVehicles_feed') }}").then((response) => {
+        response.text().then((t) => {
+          movingVehicles.innerHTML = t;
+        });
+      });
+    }, 500);
+
+    var stoppedVehicles = document.getElementById("stoppedVehicles");
+
+    setInterval(() => {
+      fetch("{{ url_for('stoppedVehicles_feed') }}").then((response) => {
+        response.text().then((t) => {
+          stoppedVehicles.innerHTML = t;
+        });
+      });
+    }, 500);
+
+    var currentForwardDensity = document.getElementById(
+      "currentForwardDensity"
+    );
+
+    setInterval(() => {
+      fetch("{{ url_for('currentForwardDensity_feed') }}").then((response) => {
+        response.text().then((t) => {
+          currentForwardDensity.innerHTML = t;
+        });
+      });
+    }, 500);
+
+    var currentBackwardDensity = document.getElementById(
+      "currentBackwardDensity"
+    );
+
+    setInterval(() => {
+      fetch("{{ url_for('currentBackwardDensity_feed') }}").then((response) => {
+        response.text().then((t) => {
+          currentBackwardDensity.innerHTML = t;
+        });
+      });
+    }, 500);
+
+    var averageVehiclesMean = document.getElementById("averageVehiclesMean");
+
+    setInterval(() => {
+      fetch("{{ url_for('averageVehiclesMean_feed') }}").then((response) => {
+        response.text().then((t) => {
+          averageVehiclesMean.innerHTML = t;
+        });
+      });
+    }, 500);
+
+    var averageStopTime = document.getElementById("averageStopTime");
+
+    setInterval(() => {
+      fetch("{{ url_for('averageStopTime_feed') }}").then((response) => {
+        response.text().then((t) => {
+          averageStopTime.innerHTML = t;
+        });
+      });
+    }, 500);
+
+    var averageDensityForwardMean = document.getElementById(
+      "averageDensityForwardMean"
+    );
+
+    setInterval(() => {
+      fetch("{{ url_for('averageDensityForwardMean_feed') }}").then(
+        (response) => {
+          response.text().then((t) => {
+            averageDensityForwardMean.innerHTML = t;
+          });
+        }
+      );
+    }, 500);
+
+    var averageDensityBackwardMean = document.getElementById(
+      "averageDensityBackwardMean"
+    );
+
+    setInterval(() => {
+      fetch("{{ url_for('averageDensityBackwardMean_feed') }}").then(
+        (response) => {
+          response.text().then((t) => {
+            averageDensityBackwardMean.innerHTML = t;
+          });
+        }
+      );
+    }, 500);
+
+    var peakTimeStart = document.getElementById("peakTimeStart");
+
+    setInterval(() => {
+      fetch("{{ url_for('peakTimeStart_feed') }}").then((response) => {
+        response.text().then((t) => {
+          peakTimeStart.innerHTML = t;
+        });
+      });
+    }, 500);
+  </script>
+</html>

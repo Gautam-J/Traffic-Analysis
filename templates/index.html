@@ -8,5 +8,17 @@
   </head>
   <body>
     <img src="{{ url_for('video_feed') }}" alt="" />
+    <p id="clock"></p>
   </body>
+  <script>
+    var clock = document.getElementById("clock");
+
+    setInterval(() => {
+      fetch("{{ url_for('time_feed') }}").then((response) => {
+        response.text().then((t) => {
+          clock.innerHTML = t;
+        });
+      });
+    }, 1000);
+  </script>
 </html>

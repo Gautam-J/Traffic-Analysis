@@ -72,6 +72,10 @@ fps = int(videoCapture.get(cv2.CAP_PROP_FPS))
 codec = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('data/out.avi', codec, fps, (width, height))
 pts = [deque(maxlen=30) for _ in range(1000)]
+densityForward = deque(maxlen=fps)
+densityBackward = deque(maxlen=fps)
+averageDensityForward = []
+averageDensityBackward = []
 
 while True:
     ret, frame = videoCapture.read()
@@ -130,8 +134,6 @@ while True:
         names = np.array(names)
         count = len(names)
 
-        # print('[DEBUG] Total number of Objects tracked:', count)
-
         # delete detections that are not in allowed_classes
         bboxes = np.delete(bboxes, deleted_indx, axis=0)
         scores = np.delete(scores, deleted_indx, axis=0)
@@ -150,6 +152,11 @@ while True:
         # Call the tracker
         tracker.predict()
         tracker.update(detections)
+
+        moving = []
+        stopped = []
+        forward = []
+        backward = []
 
         # update tracks
         for track in tracker.tracks:
@@ -177,8 +184,31 @@ while True:
 
                 cv2.line(frame, (pts[track.track_id][j - 1]), (pts[track.track_id][j]), color, 2)
 
+            if len(pts[track.track_id]) > 5 and abs(pts[track.track_id][-5][1] - pts[track.track_id][-1][1]) < 3:
+                stopped.append(track.track_id)
+            else:
+                moving.append(track.track_id)
+                pass
+
+            if (pts[track.track_id][0][1] < pts[track.track_id][-1][1]):
+                backward.append(track.track_id)
+            else:
+                forward.append(track.track_id)
+
         fps = 1.0 / (time.time() - start_time)
-        print(f'[DEBUG] Total number of vehicles {count} | FPS {fps:.2f}')
+        movingVehicles = len(set(moving))
+        stoppedVehicles = len(set(stopped))
+        forwardVehicles = len(set(forward))
+        backwardVehicles = len(set(backward))
+        densityForward.append(forwardVehicles)
+        densityBackward.append(backwardVehicles)
+        currentForwardDensity = np.mean(densityForward)
+        currentBackwardDensity = np.mean(densityBackward)
+        averageDensityForward.append(currentForwardDensity)
+        averageDensityBackward.append(currentBackwardDensity)
+
+        print(f'[INFO] vehicles in frame {count} | moving {movingVehicles} | stopped {stoppedVehicles} | forward density {currentForwardDensity:.2f} | backward density {currentBackwardDensity:.2f} | fps {fps:.2f}')
+
         result = np.asarray(frame)
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
@@ -195,4 +225,6 @@ videoCapture.release()
 out.release()
 cv2.destroyAllWindows()
 
-print('Saved Processed Video')
+print('[DEBUG] Saved Processed Video')
+print(f'[INFO] Average Forward Density {np.mean(averageDensityForward):.2f}')
+print(f'[INFO] Average Backward Density {np.mean(averageDensityBackward):.2f}')

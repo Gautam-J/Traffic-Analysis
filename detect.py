@@ -19,7 +19,7 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 
 WEIGHTS = './checkpoints/yolov4-tiny-416'
-# WEIGHTS = './checkpoints/yolov4-416'
+# WEIGHTS = './checkpoints/yolov4-416'  # https://drive.google.com/file/d/1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT/view
 TINY = True if WEIGHTS.endswith('tiny-416') else False
 IMG_SIZE = 416
 CONF_THRESHOLD = 0.5  # object confidence threshold

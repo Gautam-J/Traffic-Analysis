@@ -19,6 +19,7 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 
 from flask import Flask, Response, render_template, request, redirect, url_for
+import urllib.request
 
 WEIGHTS = './checkpoints/yolov4-tiny-416'
 # WEIGHTS = './checkpoints/yolov4-416'  # https://drive.google.com/file/d/1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT/view
@@ -88,7 +89,14 @@ app.config['UPLOAD_FOLDER'] = 'temp'
 def main():
     if request.method == 'POST':
         video = request.files['video']
-        video.save(os.path.join(upload_dir, 'video.mp4'))
+        url = request.form.get('url')
+
+        if url != '':
+            print("==" * 100)
+            print('Got URL')
+            urllib.request.urlretrieve(url, os.path.join(upload_dir, 'video.mp4'))
+        else:
+            video.save(os.path.join(upload_dir, 'video.mp4'))
 
         return redirect(url_for('detection'))
 
@@ -266,7 +274,7 @@ def stream():
             yield (b'--frame\r\n'b'Content-Type: text/plain\r\n\r\n' + frame + b'\r\n')
 
         else:
-            # videoCapture.release()
+            videoCapture.release()
 
             counter = Counter(averageStopped)
             t = [counts for (_, counts) in counter.items()]
@@ -333,7 +341,7 @@ def stoppedVehicles_feed():
 def currentForwardDensity_feed():
 
     def generate():
-        yield str(currentForwardDensity)
+        yield str(round(float(currentForwardDensity), 2))
 
     return Response(generate(), mimetype='text/html')
 
@@ -342,7 +350,7 @@ def currentForwardDensity_feed():
 def currentBackwardDensity_feed():
 
     def generate():
-        yield str(currentBackwardDensity)
+        yield str(round(float(currentBackwardDensity), 2))
 
     return Response(generate(), mimetype='text/html')
 

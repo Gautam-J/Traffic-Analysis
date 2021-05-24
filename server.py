@@ -121,6 +121,7 @@ def stream():
     stoppedVehicles = '0'
     currentForwardDensity = '0'
     currentBackwardDensity = '0'
+    fps = '0'
 
     videoCapture = cv2.VideoCapture("temp/video.mp4")
     height = int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -355,6 +356,15 @@ def currentBackwardDensity_feed():
     return Response(generate(), mimetype='text/html')
 
 
+@app.route('/fps_feed')
+def fps_feed():
+
+    def generate():
+        yield str(round(float(fps), 2))
+
+    return Response(generate(), mimetype='text/html')
+
+
 @app.route('/averageVehiclesMean_feed')
 def averageVehiclesMean_feed():
 
@@ -401,4 +411,4 @@ def peakTimeStart_feed():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)

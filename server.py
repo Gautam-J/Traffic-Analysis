@@ -27,7 +27,6 @@ TINY = True if WEIGHTS.endswith('tiny-416') else False
 IMG_SIZE = 416
 CONF_THRESHOLD = 0.5  # object confidence threshold
 IOU_THRESHOLD = 0.45  # IOU threshold for NMS
-VIDEO_PATH = 'data/cut.mp4'
 MAX_COSINE_DISTANCE = 0.4
 NN_BUDGET = None
 NMS_MAX_OVERLAP = 1.0
@@ -285,6 +284,7 @@ def stream():
 
         else:
             videoCapture.release()
+            out.release()
 
             counter = Counter(averageStopped)
             t = [counts for (_, counts) in counter.items()]
@@ -420,4 +420,4 @@ def peakTimeStart_feed():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

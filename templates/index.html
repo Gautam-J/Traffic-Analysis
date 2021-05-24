@@ -1,18 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Traffic Analysis</title>
-  </head>
-  <body>
-    <form method="POST" enctype="multipart/form-data" action="">
-      <label for="url">Make sure the URL ends with .mp4</label>
-      <input type="text" name="url" />
-      <label for="video">Directly upload a .mp4 file</label>
-      <input type="file" name="video" />
-      <input type="submit" value="Submit" />
-    </form>
-  </body>
-</html>
+{% extends 'layout.html' %} {% block content %}
+
+<div class="jumbotron text-monospace text-center">
+  <h3>What is this?</h3>
+  <p class="lead text-center">
+    Analyse traffic videos using Yolov4-tiny model and track vehicles with the
+    help of DeepSORT. <br />
+    Calculate total number of vehicles, vehicle density, and more using OpenCV!
+    <br />
+    Get a summary of the entire video with the power of computer vision.
+  </p>
+</div>
+
+<div class="form-box">
+  <form method="POST" enctype="multipart/form-data" action="">
+    <div class="mb-3">
+      <label for="url" class="form-label">URL for video</label>
+      <input type="text" name="url" class="form-control" />
+      <div class="form-text">Make sure the URL ends with .mp4</div>
+    </div>
+    <h4 class="text-center">OR</h4>
+    <div class="mb-3">
+      <label for="video" class="form-label">Upload video</label>
+      <input type="file" name="video" class="form-control" />
+      <div class="form-text">Upload a video from local storage</div>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+</div>
+
+{% endblock content %}

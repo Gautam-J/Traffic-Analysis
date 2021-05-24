@@ -18,7 +18,7 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 
-from flask import Flask, Response, render_template, request, redirect, url_for
+from flask import Flask, Response, render_template, request, redirect, url_for, send_file
 import urllib.request
 
 WEIGHTS = './checkpoints/yolov4-tiny-416'
@@ -108,6 +108,11 @@ def detection():
     return render_template('detection.html')
 
 
+@app.route('/download')
+def download():
+    return send_file(os.path.join(upload_dir, 'out.avi'), as_attachment=True)
+
+
 def stream():
     global count, movingVehicles, stoppedVehicles, currentForwardDensity, currentBackwardDensity, fps
     global peakTimeStart, averageDensityForwardMean, averageDensityBackwardMean, averageVehiclesMean, averageStopTime
@@ -124,9 +129,12 @@ def stream():
     fps = '0'
 
     videoCapture = cv2.VideoCapture("temp/video.mp4")
+    width = int(videoCapture.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     FPS = int(videoCapture.get(cv2.CAP_PROP_FPS))
     peakTimeFrames = PEAK_TIME_WINDOW * FPS
+    codec = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(os.path.join(upload_dir, 'out.avi'), codec, FPS, (width, height))
     pts = [deque(maxlen=30) for _ in range(1000)]
     densityForward = deque(maxlen=FPS)
     densityBackward = deque(maxlen=FPS)
@@ -222,9 +230,9 @@ def stream():
                 color = [i * 255 for i in color]
 
                 # draw bounding boxes
-                cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
+                cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 1)
                 cv2.rectangle(frame, (int(bbox[0]), int(bbox[1] - 30)), (int(bbox[0]) + (len(class_name) + len(str(track.track_id))) * 17, int(bbox[1])), color, -1)
-                cv2.putText(frame, class_name + "-" + str(track.track_id), (int(bbox[0]), int(bbox[1] - 10)), 0, 0.75, (255, 255, 255), 2)
+                cv2.putText(frame, class_name + "-" + str(track.track_id), (int(bbox[0]), int(bbox[1] - 10)), 0, 0.75, (255, 255, 255), 1)
 
                 # calculate centroid
                 center = (int(((bbox[0]) + (bbox[2])) / 2), int(((bbox[1]) + (bbox[3])) / 2))
@@ -270,6 +278,7 @@ def stream():
 
             result = np.asarray(frame)
             result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            out.write(result)
             frame = cv2.imencode('.jpg', result)[1].tostring()
 
             yield (b'--frame\r\n'b'Content-Type: text/plain\r\n\r\n' + frame + b'\r\n')

@@ -90,6 +90,12 @@ python server.py
 
 ![](readme_media/summary.png)
 
+#### Demo
+
+![](readme_media/output.gif)
+
+> NOTE: The above demo is a .gif file. The quality and FPS of the output video will match those of the input video.
+
 ## Citations
 
 - [YOLO v4](https://arxiv.org/abs/2004.10934)

@@ -63,7 +63,7 @@ class_names = utils.read_class_names(cfg.YOLO.CLASSES)
 
 allowed_classes = [
     'car',
-    'motorcycle',
+    'motorbike',
     'bus',
     'truck',
 ]
@@ -78,7 +78,6 @@ averageStopped = []
 counter = []
 averageVehicles = []
 stopTimes = []
-peakTimes = []
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'temp'
@@ -137,7 +136,6 @@ def stream():
     pts = [deque(maxlen=30) for _ in range(1000)]
     densityForward = deque(maxlen=FPS)
     densityBackward = deque(maxlen=FPS)
-    counter = []
 
     while True:
         ret, frame = videoCapture.read()
@@ -217,6 +215,7 @@ def stream():
             stopped = []
             forward = []
             backward = []
+            counter = []
 
             # update tracks
             for track in tracker.tracks:
@@ -271,7 +270,6 @@ def stream():
             averageDensityForward.append(currentForwardDensity)
             averageDensityBackward.append(currentBackwardDensity)
             averageVehicles.append(len(set(counter)))
-            peakTimes.append(stoppedVehicles)
 
             # print(f'[INFO] vehicles in frame {count} | moving {movingVehicles} | stopped {stoppedVehicles} | forward density {currentForwardDensity:.2f} | backward density {currentBackwardDensity:.2f} | fps {fps:.2f}')
 
@@ -304,7 +302,7 @@ def stream():
 
                 return start
 
-            peakTimeStart = round(getStart(peakTimes, peakTimeFrames) / FPS, 2)
+            peakTimeStart = round(getStart(averageVehicles, peakTimeFrames) / FPS, 2)
             min, s = divmod(peakTimeStart, 60)
             peakTimeStart = f'{min} min {s} sec'
             averageDensityForwardMean = round(np.mean(averageDensityForward), 2)

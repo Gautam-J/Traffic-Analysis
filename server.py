@@ -33,6 +33,35 @@ NMS_MAX_OVERLAP = 1.0
 PEAK_TIME_WINDOW = 60  # seconds
 upload_dir = 'temp'
 
+
+def getAverageVehiclesPerSecond(arr, FPS):
+    tots = []
+    for i in range(0, len(arr) - FPS + 1, FPS):
+        sum_ = 0
+        for j in range(i, i + FPS):
+            sum_ += arr[j]
+
+        tots.append(sum_ / FPS)
+
+    return round(np.mean(tots), 2)
+
+
+def getStart(arr, k):
+    res = 0
+    start = 0
+
+    for i in range(len(arr) - k):
+        sum_ = 0
+        for j in range(i, i + k):
+            sum_ += arr[j]
+
+        if sum_ > res:
+            res = sum_
+            start = i
+
+    return start
+
+
 if not os.path.exists(upload_dir):
     os.makedirs(upload_dir)
 
@@ -72,12 +101,11 @@ allowed_classes = [
 cmap = plt.get_cmap('tab20b')
 colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
 
-averageDensityForward = []
-averageDensityBackward = []
-averageStopped = []
-counter = []
-averageVehicles = []
-stopTimes = []
+forwardDensity = []
+backwardDensity = []
+stoppedVehiclesList = []
+gateCounter = []
+peakTimeVehicles = []
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'temp'
@@ -90,8 +118,6 @@ def main():
         url = request.form.get('url')
 
         if url != '':
-            print("==" * 100)
-            print('Got URL')
             urllib.request.urlretrieve(url, os.path.join(upload_dir, 'video.mp4'))
         else:
             video.save(os.path.join(upload_dir, 'video.mp4'))
@@ -113,11 +139,11 @@ def download():
 
 def stream():
     global count, movingVehicles, stoppedVehicles, currentForwardDensity, currentBackwardDensity, fps
-    global peakTimeStart, averageDensityForwardMean, averageDensityBackwardMean, averageVehiclesMean, averageStopTime
+    global peakTimeStart, averageForwardDensity, averageBackwardDensity, averageVehicles, averageStopTime
     peakTimeStart = '0'
-    averageDensityForwardMean = '0'
-    averageDensityBackwardMean = '0'
-    averageVehiclesMean = '0'
+    averageForwardDensity = '0'
+    averageBackwardDensity = '0'
+    averageVehicles = '0'
     averageStopTime = '0'
     count = '0'
     movingVehicles = '0'
@@ -149,7 +175,7 @@ def stream():
 
             batch_data = tf.constant(image_data)
             pred_bbox = infer(batch_data)
-            for key, value in pred_bbox.items():
+            for _, value in pred_bbox.items():
                 boxes = value[:, :, 0:4]
                 pred_conf = value[:, :, 4:]
 
@@ -249,7 +275,7 @@ def stream():
 
                 if len(pts[track.track_id]) > 5 and abs(pts[track.track_id][-5][1] - pts[track.track_id][-1][1]) < 1:
                     stopped.append(track.track_id)
-                    averageStopped.append(track.track_id)
+                    stoppedVehiclesList.append(track.track_id)
                 else:
                     moving.append(track.track_id)
 
@@ -259,17 +285,22 @@ def stream():
                     forward.append(track.track_id)
 
             fps = 1.0 / (time.time() - start_time)
+
             movingVehicles = len(set(moving))
             stoppedVehicles = len(set(stopped))
             forwardVehicles = len(set(forward))
             backwardVehicles = len(set(backward))
+
             densityForward.append(forwardVehicles)
             densityBackward.append(backwardVehicles)
+
             currentForwardDensity = np.mean(densityForward)
             currentBackwardDensity = np.mean(densityBackward)
-            averageDensityForward.append(currentForwardDensity)
-            averageDensityBackward.append(currentBackwardDensity)
-            averageVehicles.append(len(set(counter)))
+            forwardDensity.append(currentForwardDensity)
+            backwardDensity.append(currentBackwardDensity)
+
+            gateCounter.append(len(set(counter)))
+            peakTimeVehicles.append(count)
 
             # print(f'[INFO] vehicles in frame {count} | moving {movingVehicles} | stopped {stoppedVehicles} | forward density {currentForwardDensity:.2f} | backward density {currentBackwardDensity:.2f} | fps {fps:.2f}')
 
@@ -284,30 +315,15 @@ def stream():
             videoCapture.release()
             out.release()
 
-            counter = Counter(averageStopped)
+            counter = Counter(stoppedVehiclesList)
             t = [counts for (_, counts) in counter.items()]
 
-            def getStart(arr, k):
-                res = 0
-                start = 0
-
-                for i in range(len(arr) - k):
-                    sum_ = 0
-                    for j in range(i, i + k):
-                        sum_ += arr[j]
-
-                    if sum_ > res:
-                        res = sum_
-                        start = i
-
-                return start
-
-            peakTimeStart = round(getStart(averageVehicles, peakTimeFrames) / FPS, 2)
+            peakTimeStart = round(getStart(peakTimeVehicles, peakTimeFrames) / FPS, 2)
             min, s = divmod(peakTimeStart, 60)
             peakTimeStart = f'{min} min {s} sec'
-            averageDensityForwardMean = round(np.mean(averageDensityForward), 2)
-            averageDensityBackwardMean = round(np.mean(averageDensityBackward), 2)
-            averageVehiclesMean = round(np.mean(averageVehicles), 2)
+            averageForwardDensity = round(np.mean(forwardDensity), 2)
+            averageBackwardDensity = round(np.mean(backwardDensity), 2)
+            averageVehicles = getAverageVehiclesPerSecond(gateCounter, FPS)
             averageStopTime = round(np.mean(t) / FPS, 2)
 
             break
@@ -376,7 +392,7 @@ def fps_feed():
 def averageVehiclesMean_feed():
 
     def generate():
-        yield str(averageVehiclesMean)
+        yield str(averageVehicles)
 
     return Response(generate(), mimetype='text/html')
 
@@ -394,7 +410,7 @@ def averageStopTime_feed():
 def averageDensityForwardMean_feed():
 
     def generate():
-        yield str(averageDensityForwardMean)
+        yield str(averageForwardDensity)
 
     return Response(generate(), mimetype='text/html')
 
@@ -403,7 +419,7 @@ def averageDensityForwardMean_feed():
 def averageDensityBackwardMean_feed():
 
     def generate():
-        yield str(averageDensityBackwardMean)
+        yield str(averageBackwardDensity)
 
     return Response(generate(), mimetype='text/html')
 

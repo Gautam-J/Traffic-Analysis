@@ -12,7 +12,7 @@ Vehicle detection and tracking using deep learning and computer vision.
 
 ## Summary
 
-Vehicle detection and tracking implemented with YOLOv4 model, DeepSORT, Tensorflow, and OpenCV. The predictions of the YOLOv4 model is feed into the DeepSORT model for realtime tracking. OpenCV is used for processing, displaying and saving the video. The backend for all Deep Learning computations is Tensorflow.
+Vehicle detection and tracking implemented with YOLOv4 model, DeepSORT, Tensorflow, and OpenCV. The predictions of the YOLOv4 model is fed into the DeepSORT model for realtime tracking. OpenCV is used for processing, displaying and saving the video. The backend for all Deep Learning computations is Tensorflow.
 
 The user will be able to upload either a link, or a video itself, and will be able to get detailed analysis of the video, about the vehicles passing the junction.
 
